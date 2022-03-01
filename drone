@@ -1,0 +1,57 @@
+version: '3.0'
+
+services:
+  drone:
+    container_name: drone
+    image: drone/drone:2.9.1
+    restart: unless-stopped
+#    depends_on:
+#      - gitea
+    environment:
+      # https://docs.drone.io/server/provider/gitea/
+      - DRONE_DATABASE_DRIVER=sqlite3
+      - DRONE_DATABASE_DATASOURCE=/data/database.sqlite
+      - DRONE_GITEA_SERVER=http://172.25.101.110:3000
+      - DRONE_GIT_ALWAYS_AUTH=false
+      - DRONE_RPC_SECRET=a36c350e7ff7bcd2751f08169854b27c
+      - DRONE_SERVER_PROTO=http
+      - DRONE_SERVER_HOST=172.25.101.110:3001
+      - DRONE_TLS_AUTOCERT=false
+      - DRONE_USER_CREATE=admin
+      - DRONE_GITEA_CLIENT_ID=eedcca85-8636-4a1a-9ef4-16908f35dca3
+      - DRONE_GITEA_CLIENT_SECRET=aVnYuCtGIJFLcXRwCj0beC3bNffbMnxXkAcoy7KS3bPV
+    ports:
+      - "3001:80"
+      - "9001:9000"
+    networks:
+      - cicd-net
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./drone:/data
+
+  drone-runner:
+    container_name: drone-runner
+    image: drone/drone-runner-docker:1.8
+    restart: unless-stopped
+    depends_on:
+      - drone
+    environment:
+      # https://docs.drone.io/runner/docker/installation/linux/
+      # https://docs.drone.io/server/metrics/
+      - DRONE_RPC_PROTO=http
+      - DRONE_RPC_HOST=drone
+      - DRONE_RPC_SECRET=a36c350e7ff7bcd2751f08169854b27c
+      - DRONE_RUNNER_NAME="drone-runner"
+      - DRONE_RUNNER_CAPACITY=2
+      - DRONE_RUNNER_NETWORKS=cicd_net
+      - DRONE_DEBUG=false
+      - DRONE_TRACE=false
+    ports:
+      - "3002:3000"
+    networks:
+      - cicd-net
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+networks:
+  cicd-net:
+    external: true
